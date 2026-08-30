@@ -1,0 +1,58 @@
+name: revert current go and fix sync
+
+on:
+  push:
+    branches: [revert-current-go-fix]
+    paths:
+      - '.github/workflows/revert-current-go-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: revert-current-go-fix
+      - name: Restore pre-round workflow and fix invalid expressions
+        shell: python
+        run: |
+          from pathlib import Path
+          import json
+
+          wf = Path('render-n8n/workflows/notion-google-calendar-sync-v2.json')
+          data = json.loads(wf.read_text())
+          node = next(n for n in data['nodes'] if n.get('name') == 'Extract Task Fields')
+          items = node['parameters']['assignments']['assignments']
+          items[:] = [x for x in items if x.get('name') not in {'displayStart', 'displayEnd'}]
+          by_name = {x['name']: x for x in items}
+
+          by_name['end']['value'] = "={{ !$json.properties?.Date?.date?.start ? '' : ($json.properties.Date.date.start.includes('T') ? ($json.properties?.Date?.date?.end || new Date(new Date($json.properties.Date.date.start).getTime() + (($json.properties?.['Estimate (min)']?.number || 30) * 60000)).toISOString()) : new Date(new Date((($json.properties?.Date?.date?.end || $json.properties.Date.date.start).slice(0,10)) + 'T00:00:00Z').getTime() + 86400000).toISOString().slice(0,10)) }}"
+          by_name['weekday']['value'] = "={{ !$json.properties?.Date?.date?.start ? '' : new Date($json.properties.Date.date.start.includes('T') ? $json.properties.Date.date.start : $json.properties.Date.date.start.slice(0,10) + 'T12:00:00+05:00').toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Karachi' }) }}"
+          by_name['calendarTitle']['value'] = "={{ (((($json.properties?.Task?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim()) || 'Untitled task').length > 60) ? ((($json.properties?.Task?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim()).slice(0,57) + '…') : ((($json.properties?.Task?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim()) || 'Untitled task') }}"
+          by_name['eventDescription']['value'] = "={{ 'Task: ' + (((($json.properties?.Task?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim()) || 'Untitled task')) + '\n\nWhen: ' + (!$json.properties?.Date?.date?.start ? '—' : (!$json.properties.Date.date.start.includes('T') ? ('All day · ' + $json.properties.Date.date.start.slice(0,10) + ($json.properties?.Date?.date?.end ? ' → ' + $json.properties.Date.date.end.slice(0,10) : '')) : (new Date($json.properties.Date.date.start).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Karachi' }) + ' → ' + new Date($json.properties?.Date?.date?.end || new Date(new Date($json.properties.Date.date.start).getTime() + (($json.properties?.['Estimate (min)']?.number || 30) * 60000)).toISOString()).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Karachi' })))) + '\nPriority: ' + ($json.properties?.Priority?.select?.name || '—') + '\nCalendar: ' + ($json.properties?.['Google Calendar']?.select?.name || '—') + '\nNotion: ' + ($json.url || '') }}"
+
+          wf.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')) + '\n')
+
+          pkg = Path('render-n8n/package.json')
+          p = json.loads(pkg.read_text())
+          p['scripts']['start'] = 'N8N_RUNNERS_MODE=external N8N_RUNNERS_AUTH_TOKEN=local-only-unused-token node --max-old-space-size=384 ./node_modules/n8n/bin/n8n start'
+          pkg.write_text(json.dumps(p, indent=2) + '\n')
+
+          for name in ['render-n8n/diagnose-format-sync.cjs', 'render-n8n/latest-sync-diagnostic.cjs']:
+              q = Path(name)
+              if q.exists():
+                  q.unlink()
+      - name: Commit fixed reverted state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/revert-current-go-fix.yml
+          git add render-n8n/workflows/notion-google-calendar-sync-v2.json render-n8n/package.json
+          git add -u render-n8n/diagnose-format-sync.cjs render-n8n/latest-sync-diagnostic.cjs 2>/dev/null || true
+          git commit -m 'fix: revert latest simplification and repair sync expressions'
+          git push origin HEAD:revert-current-go-fix
