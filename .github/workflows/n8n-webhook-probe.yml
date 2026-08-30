@@ -1,4 +1,4 @@
-name: n8n request-log probe
+name: create temporary webhook inbox
 
 on:
   push:
@@ -8,13 +8,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  probe:
+  create-inbox:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe Render request path
+      - name: Create anonymous Webhook.site token
         shell: bash
         run: |
-          curl --connect-timeout 20 --max-time 60 -sS \
-            'https://n8n-webhook-sync.onrender.com/__notion_verify__/CHATGPT_PATH_TOKEN_20260830' \
-            -o response.txt -w 'HTTP %{http_code}\n' || true
-          cat response.txt || true
+          set -euo pipefail
+          curl -sS -X POST 'https://webhook.site/token' \
+            -H 'Accept: application/json' \
+            -H 'Content-Type: application/json' \
+            --data '{"default_status":200,"default_content":"OK","default_content_type":"text/plain"}' > token.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('token.json'))
+          print('WEBHOOK_SITE_UUID=' + d['uuid'])
+          print('CAPTURE_URL=https://webhook.site/' + d['uuid'])
+          print('REQUESTS_API=https://webhook.site/token/' + d['uuid'] + '/requests?sorting=newest')
+          PY
