@@ -1,0 +1,14 @@
+{
+  "name": "n8n-render-webhook",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=22.22"
+  },
+  "dependencies": {
+    "n8n": "2.26.0"
+  },
+  "scripts": {
+    "start": "n8n start"
+  }
+}
