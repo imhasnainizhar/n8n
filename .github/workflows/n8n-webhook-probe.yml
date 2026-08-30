@@ -19,7 +19,7 @@ jobs:
             -sS -o response.txt -w '%{http_code}' \
             -X POST 'https://n8n-webhook-sync.onrender.com/webhook/notion-google-calendar-sync' \
             -H 'content-type: application/json' \
-            --data '{"type":"probe","source":"chatgpt","test":"fresh-call"}')
+            --data '{"verification_token":"CHATGPT_FAKE_VERIFY_20260830"}')
           echo "HTTP $code"
           cat response.txt || true
           test "$code" = "200"
