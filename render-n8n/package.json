@@ -9,6 +9,6 @@
     "n8n": "2.26.0"
   },
   "scripts": {
-    "start": "node diagnose-format-sync.cjs && N8N_RUNNERS_MODE=external N8N_RUNNERS_AUTH_TOKEN=local-only-unused-token node --max-old-space-size=384 ./node_modules/n8n/bin/n8n start"
+    "start": "N8N_RUNNERS_MODE=external N8N_RUNNERS_AUTH_TOKEN=local-only-unused-token node --max-old-space-size=384 ./node_modules/n8n/bin/n8n start"
   }
 }
