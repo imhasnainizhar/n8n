@@ -24,15 +24,12 @@ jobs:
 
           wf = Path('render-n8n/workflows/notion-google-calendar-sync-v2.json')
           data = json.loads(wf.read_text())
-          node = next(n for n in data['nodes'] if n.get('name') == 'Extract Task Fields')
+          node = next(n for n in data['nodes'] if n.get('name') == 'Normalize Event Fields')
           items = node['parameters']['assignments']['assignments']
-          items[:] = [x for x in items if x.get('name') not in {'displayStart', 'displayEnd'}]
           by_name = {x['name']: x for x in items}
 
-          by_name['end']['value'] = "={{ !$json.properties?.Date?.date?.start ? '' : ($json.properties.Date.date.start.includes('T') ? ($json.properties?.Date?.date?.end || new Date(new Date($json.properties.Date.date.start).getTime() + (($json.properties?.['Estimate (min)']?.number || 30) * 60000)).toISOString()) : new Date(new Date((($json.properties?.Date?.date?.end || $json.properties.Date.date.start).slice(0,10)) + 'T00:00:00Z').getTime() + 86400000).toISOString().slice(0,10)) }}"
-          by_name['weekday']['value'] = "={{ !$json.properties?.Date?.date?.start ? '' : new Date($json.properties.Date.date.start.includes('T') ? $json.properties.Date.date.start : $json.properties.Date.date.start.slice(0,10) + 'T12:00:00+05:00').toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Karachi' }) }}"
-          by_name['calendarTitle']['value'] = "={{ (((($json.properties?.Task?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim()) || 'Untitled task').length > 60) ? ((($json.properties?.Task?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim()).slice(0,57) + '…') : ((($json.properties?.Task?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim()) || 'Untitled task') }}"
-          by_name['eventDescription']['value'] = "={{ 'Task: ' + (((($json.properties?.Task?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim()) || 'Untitled task')) + '\n\nWhen: ' + (!$json.properties?.Date?.date?.start ? '—' : (!$json.properties.Date.date.start.includes('T') ? ('All day · ' + $json.properties.Date.date.start.slice(0,10) + ($json.properties?.Date?.date?.end ? ' → ' + $json.properties.Date.date.end.slice(0,10) : '')) : (new Date($json.properties.Date.date.start).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Karachi' }) + ' → ' + new Date($json.properties?.Date?.date?.end || new Date(new Date($json.properties.Date.date.start).getTime() + (($json.properties?.['Estimate (min)']?.number || 30) * 60000)).toISOString()).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Karachi' })))) + '\nPriority: ' + ($json.properties?.Priority?.select?.name || '—') + '\nCalendar: ' + ($json.properties?.['Google Calendar']?.select?.name || '—') + '\nNotion: ' + ($json.url || '') }}"
+          by_name['calendarTitle']['value'] = "={{ ($json.title || 'Untitled task').length > 60 ? ($json.title || 'Untitled task').slice(0,57) + '…' : ($json.title || 'Untitled task') }}"
+          by_name['eventDescription']['value'] = "={{ 'Task: ' + ($json.title || 'Untitled task') + '\n\nWhen: ' + (!$json.startRaw ? '—' : (!$json.startRaw.includes('T') ? ('All day · ' + $json.startRaw.slice(0,10) + ($json.endRaw ? ' → ' + $json.endRaw.slice(0,10) : '')) : ($json.startRaw + ($json.endRaw ? ' → ' + $json.endRaw : '')))) + '\nPriority: ' + ($json.priority || '—') + '\nCalendar: ' + ($json.calendarName || '—') + '\nNotion: ' + ($json.pageUrl || '') }}"
 
           wf.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')) + '\n')
 
