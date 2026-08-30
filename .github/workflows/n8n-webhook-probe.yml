@@ -1,4 +1,4 @@
-name: replay PUBG Notion webhook
+name: verify Notion calendar formatting
 
 on:
   push:
@@ -11,15 +11,18 @@ jobs:
   replay:
     runs-on: ubuntu-latest
     steps:
-      - name: Replay realistic Notion page update
+      - name: Replay timed and all-day Notion updates
         shell: bash
         run: |
           set -euo pipefail
-          code=$(curl --retry 3 --retry-delay 3 --connect-timeout 20 --max-time 90 \
-            -sS -o response.txt -w '%{http_code}' \
-            -X POST 'https://n8n-webhook-sync.onrender.com/webhook/notion-google-calendar-sync' \
-            -H 'content-type: application/json' \
-            --data '{"id":"chatgpt-pubg-replay-fixed-20260830","type":"page.properties_updated","entity":{"type":"page","id":"5e71ee95-606c-45cd-9b60-bae72b469470"},"authors":[{"id":"diagnostic-user","type":"person"}],"data":{"parent":{"id":"4abe0c50-c195-4bc8-bb21-301f5368a0c9","type":"database","data_source_id":"ff0dfdb4-a2ee-497e-b7b4-3eef398c717a"}},"timestamp":"2026-08-30T07:59:00Z"}')
-          echo "HTTP $code"
-          cat response.txt || true
-          test "$code" = "200"
+          endpoint='https://n8n-webhook-sync.onrender.com/webhook/notion-google-calendar-sync'
+          post() {
+            local body="$1"
+            local code
+            code=$(curl --retry 3 --retry-delay 3 --connect-timeout 20 --max-time 90 -sS -o response.txt -w '%{http_code}' -X POST "$endpoint" -H 'content-type: application/json' --data "$body")
+            echo "HTTP $code"
+            cat response.txt || true
+            test "$code" = "200"
+          }
+          post '{"id":"format-test-timed-20260830","type":"page.properties_updated","entity":{"type":"page","id":"5e71ee95-606c-45cd-9b60-bae72b469470"},"authors":[{"id":"diagnostic-user","type":"person"}],"data":{"parent":{"id":"4abe0c50-c195-4bc8-bb21-301f5368a0c9","type":"database","data_source_id":"ff0dfdb4-a2ee-497e-b7b4-3eef398c717a"}},"timestamp":"2026-08-30T08:51:00Z"}'
+          post '{"id":"format-test-allday-20260830","type":"page.properties_updated","entity":{"type":"page","id":"3cc327c6-6abc-8155-9374-fc724e01736a"},"authors":[{"id":"diagnostic-user","type":"person"}],"data":{"parent":{"id":"4abe0c50-c195-4bc8-bb21-301f5368a0c9","type":"database","data_source_id":"ff0dfdb4-a2ee-497e-b7b4-3eef398c717a"}},"timestamp":"2026-08-30T08:51:01Z"}'
