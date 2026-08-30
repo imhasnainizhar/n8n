@@ -2,7 +2,7 @@ name: n8n webhook probe
 
 on:
   push:
-    branches: [render-webhook]
+    branches: [webhook-probe-test]
     paths:
       - '.github/workflows/n8n-webhook-probe.yml'
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
             -sS -o response.txt -w '%{http_code}' \
             -X POST 'https://n8n-webhook-sync.onrender.com/webhook/notion-google-calendar-sync' \
             -H 'content-type: application/json' \
-            --data '{"type":"probe"}')
+            --data '{"type":"probe","source":"chatgpt","test":"fresh-call"}')
           echo "HTTP $code"
           cat response.txt || true
           test "$code" = "200"
