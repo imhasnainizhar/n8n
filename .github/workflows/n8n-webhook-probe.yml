@@ -18,7 +18,7 @@ jobs:
           endpoint='https://n8n-webhook-sync.onrender.com/webhook/notion-google-calendar-sync'
           code=$(curl --retry 3 --retry-delay 3 --connect-timeout 20 --max-time 90 -sS -o response.txt -w '%{http_code}' \
             -X POST "$endpoint" -H 'content-type: application/json' \
-            --data '{"id":"schema-test-pubg-20260830","type":"page.properties_updated","entity":{"type":"page","id":"5e71ee95-606c-45cd-9b60-bae72b469470"},"authors":[{"id":"diagnostic-user","type":"person"}],"data":{"parent":{"id":"4abe0c50-c195-4bc8-bb21-301f5368a0c9","type":"database","data_source_id":"ff0dfdb4-a2ee-497e-b7b4-3eef398c717a"}},"timestamp":"2026-08-30T11:16:30Z"}'
+            --data '{"id":"schema-test-pubg-20260830","type":"page.properties_updated","entity":{"type":"page","id":"5e71ee95-606c-45cd-9b60-bae72b469470"},"authors":[{"id":"diagnostic-user","type":"person"}],"data":{"parent":{"id":"4abe0c50-c195-4bc8-bb21-301f5368a0c9","type":"database","data_source_id":"ff0dfdb4-a2ee-497e-b7b4-3eef398c717a"}},"timestamp":"2026-08-30T11:16:30Z"}')
           echo "HTTP $code"
           cat response.txt || true
           test "$code" = "200"
