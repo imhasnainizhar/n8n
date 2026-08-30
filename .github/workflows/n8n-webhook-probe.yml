@@ -1,4 +1,4 @@
-name: create temporary webhook inbox
+name: replay PUBG Notion webhook
 
 on:
   push:
@@ -8,21 +8,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  create-inbox:
+  replay:
     runs-on: ubuntu-latest
     steps:
-      - name: Create anonymous Webhook.site token
+      - name: Replay realistic Notion page update
         shell: bash
         run: |
           set -euo pipefail
-          curl -sS -X POST 'https://webhook.site/token' \
-            -H 'Accept: application/json' \
-            -H 'Content-Type: application/json' \
-            --data '{"default_status":200,"default_content":"OK","default_content_type":"text/plain"}' > token.json
-          python3 - <<'PY'
-          import json
-          d=json.load(open('token.json'))
-          print('WEBHOOK_SITE_UUID=' + d['uuid'])
-          print('CAPTURE_URL=https://webhook.site/' + d['uuid'])
-          print('REQUESTS_API=https://webhook.site/token/' + d['uuid'] + '/requests?sorting=newest')
-          PY
+          code=$(curl --retry 3 --retry-delay 3 --connect-timeout 20 --max-time 90 \
+            -sS -o response.txt -w '%{http_code}' \
+            -X POST 'https://n8n-webhook-sync.onrender.com/webhook/notion-google-calendar-sync' \
+            -H 'content-type: application/json' \
+            --data '{"id":"chatgpt-pubg-replay-20260830","type":"page.properties_updated","entity":{"type":"page","id":"5e71ee95-606c-45cd-9b60-bae72b469470"},"authors":[{"type":"person"}],"data":{"parent":{"data_source_id":"ff0dfdb4-a2ee-497e-b7b4-3eef398c717a"}},"timestamp":"2026-08-30T07:05:00Z"}')
+          echo "HTTP $code"
+          cat response.txt || true
+          test "$code" = "200"
