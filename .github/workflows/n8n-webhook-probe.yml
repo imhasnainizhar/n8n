@@ -1,4 +1,4 @@
-name: n8n webhook probe
+name: n8n request-log probe
 
 on:
   push:
@@ -11,15 +11,10 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe production webhook
+      - name: Probe Render request path
         shell: bash
         run: |
-          set -euo pipefail
-          code=$(curl --retry 4 --retry-delay 5 --connect-timeout 20 --max-time 90 \
-            -sS -o response.txt -w '%{http_code}' \
-            -X POST 'https://n8n-webhook-sync.onrender.com/webhook/notion-google-calendar-sync' \
-            -H 'content-type: application/json' \
-            --data '{"verification_token":"CHATGPT_FAKE_VERIFY_20260830"}')
-          echo "HTTP $code"
+          curl --connect-timeout 20 --max-time 60 -sS \
+            'https://n8n-webhook-sync.onrender.com/__notion_verify__/CHATGPT_PATH_TOKEN_20260830' \
+            -o response.txt -w 'HTTP %{http_code}\n' || true
           cat response.txt || true
-          test "$code" = "200"
